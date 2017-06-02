@@ -21,13 +21,13 @@ import pytest
 
 
 # TODO: Pull from environment
-API_KEY = 'LOADENV_API_KEY'  # TODO: Encrypt / use access token
 CLOUD_REGION = 'us-central1'
 DEVICE_ID_TEMPLATE = 'test-device-{}'
 ES_CERT_PATH = '../ec_public.pem'
 RSA_CERT_PATH = '../rsa_cert.pem'
 TOPIC_ID = 'test-device-events-{}'.format(int(time.time()))
 
+API_KEY = os.environ['API_KEY']
 PROJECT_ID = os.environ['GCLOUD_PROJECT']
 SERVICE_ACCOUNT_JSON = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
 

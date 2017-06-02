@@ -15,33 +15,20 @@
 # limitations under the License.
 
 
-"""Example of using the Google Cloud IoT Core device manager to administer
+"""
+Example of using the Google Cloud IoT Core device manager to administer
 devices.
-
-This example uses the Device Manager API to create, retrieve, disable, list and
-delete Cloud IoT Core devices and registries, using both RSA and eliptic curve
-keys for authentication.
-
-Before you run the sample, configure Cloud IoT Core as described in the
-documentation at https://cloud.google.com/iot or by following the instructions
-in the README located in the parent folder.
 
 Usage example:
 
-  $ python manager.py \
-      --project_id=my-project-id \
-      --pubsub_topic=projects/my-project-id/topics/my-topic-id \
-      --api_key=YOUR_API_KEY \
-      --ec_public_key_file=../ec_public.pem \
-      --rsa_certificate_file=../rsa_cert.pem \
+    python manager.py \\
+      --project_id=my-project-id \\
+      --pubsub_topic=projects/my-project-id/topics/my-topic-id \\
+      --api_key=YOUR_API_KEY \\
+      --ec_public_key_file=../ec_public.pem \\
+      --rsa_certificate_file=../rsa_cert.pem \\
       --service_account_json=$HOME/service_account.json
-
-Troubleshooting:
-
-  - If you get a 400 error when running the example, with the message "The API
-    Key and the authentication credential are from different projects" it means
-    that you are using the wrong API Key. Ensure that you are using the API key
-    from Google Cloud Platform's API Manager's Credentials page.
+      list
 """
 
 import argparse
@@ -224,19 +211,19 @@ def get_device(
 
     print 'Id : {}'.format(device.get('id'))
     print 'Name : {}'.format(device.get('name'))
-    print ('Credentials:')
+    print('Credentials:')
     if device.get('credentials') is not None:
         for credential in device.get('credentials'):
             keyinfo = credential.get('publicKey')
-            print '\tcertificate: \n{}'.format(keyinfo.get('key'))
-            print '\tformat : {}'.format(keyinfo.get('format'))
-            print '\texpiration: {}'.format(credential.get('expirationTime'))
+            print('\tcertificate: \n{}'.format(keyinfo.get('key')))
+            print('\tformat : {}'.format(keyinfo.get('format')))
+            print('\texpiration: {}'.format(credential.get('expirationTime')))
 
-    print 'Config:'
-    print '\tdata: {}'.format(device.get('config').get('data'))
-    print '\tversion: {}'.format(device.get('config').get('version'))
-    print '\tcloudUpdateTime: {}'.format(device.get('config').get(
-            'cloudUpdateTime'))
+    print('Config:')
+    print('\tdata: {}'.format(device.get('config').get('data')))
+    print('\tversion: {}'.format(device.get('config').get('version')))
+    print('\tcloudUpdateTime: {}'.format(device.get('config').get(
+            'cloudUpdateTime')))
 
     return device
     # [END delete_device]
@@ -266,7 +253,7 @@ def open_registry(
         service_account_json, api_key, project_id, cloud_region, pubsub_topic,
         registry_id):
     """Gets or creates a device registry."""
-    print ('Creating registry')
+    print('Creating registry')
     client = get_client(service_account_json, api_key)
     registry_parent = 'projects/{}/locations/{}'.format(
             project_id,
@@ -357,7 +344,8 @@ def parse_command_line_args():
             int(time.time()))
 
     parser = argparse.ArgumentParser(
-            description='Example of Google Cloud IoT Core device management.')
+            description=__doc__,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
 
     # Required arguments
     parser.add_argument(
@@ -368,12 +356,6 @@ def parse_command_line_args():
             help=('Google Cloud Pub/Sub topic. '
                   'Format is projects/project_id/topics/topic-id'))
     parser.add_argument('--api_key', required=True, help='Your API key.')
-    parser.add_argument(
-            '--command',
-            default='list',
-            help='Operation to perform (create-device, create-registry, '
-                    'delete-device, delete-registry, get, list, patch-es256, '
-                    'patch-rs256)')
 
     # Optional arguments
     parser.add_argument(
@@ -399,39 +381,50 @@ def parse_command_line_args():
             default=None,
             help='Device id.')
 
+    # Command subparser
+    command = parser.add_subparsers(dest='command')
+
+    command.add_parser('create-es256', help=create_es256_device.__doc__)
+    command.add_parser('create-registry', help=open_registry.__doc__)
+    command.add_parser('create-rsa256', help=create_rs256_device.__doc__)
+    command.add_parser('create-topic', help=create_iot_topic.__doc__)
+    command.add_parser('create-unauth', help=create_unauth_device.__doc__)
+    command.add_parser('delete-device', help=delete_device.__doc__)
+    command.add_parser('delete-registry', help=delete_registry.__doc__)
+    command.add_parser('get', help=get_device.__doc__)
+    command.add_parser('list', help=list_devices.__doc__)
+    command.add_parser('patch-es256', help=patch_es256_auth.__doc__)
+    command.add_parser('patch-rs256', help=patch_rsa256_auth.__doc__)
+
     return parser.parse_args()
 
 
 def run_command(args):
     """Calls the program using the specified command."""
-    if args.command == 'create-device':
-        created = False
-        if args.rsa_certificate_file is not None:
-            create_rs256_device(
-                    args.service_account_json, args.api_key, args.project_id,
-                    args.cloud_region, args.registry_id, args.device_id,
-                    args.rsa_certificate_file)
-            created = True
+    if args.command == 'create-rsa256':
+        create_rs256_device(
+                args.service_account_json, args.api_key, args.project_id,
+                args.cloud_region, args.registry_id, args.device_id,
+                args.rsa_certificate_file)
 
-        if args.ec_public_key_file is not None:
-            create_es256_device(
-                    args.service_account_json, args.api_key, args.project_id,
-                    args.cloud_region, args.registry_id, args.device_id,
-                    args.ec_public_key_file)
-            created = True
+    elif args.command == 'create-es256':
+        create_es256_device(
+                args.service_account_json, args.api_key, args.project_id,
+                args.cloud_region, args.registry_id, args.device_id,
+                args.ec_public_key_file)
 
-        if not created:
-            create_unauth_device(
-                    args.service_account_json, args.api_key, args.project_id,
-                    args.cloud_region, args.registry_id, args.device_id)
-
-    elif args.command == 'create-topic':
-        create_iot_topic(args.pubsub_topic)
+    elif args.command == 'create-unauth':
+        create_unauth_device(
+                args.service_account_json, args.api_key, args.project_id,
+                args.cloud_region, args.registry_id, args.device_id)
 
     elif args.command == 'create-registry':
         open_registry(
                 args.service_account_json, args.api_key, args.project_id,
                 args.cloud_region, args.pubsub_topic, args.registry_id)
+
+    elif args.command == 'create-topic':
+        create_iot_topic(args.pubsub_topic)
 
     elif args.command == 'delete-device':
         delete_device(
@@ -468,15 +461,6 @@ def run_command(args):
                 args.service_account_json, args.api_key, args.project_id,
                 args.cloud_region, args.registry_id, args.device_id,
                 args.rsa_certificate_file)
-
-    elif args.command is 'update-config':
-        print('Update config')
-
-    else:
-        print(
-                'Unrecognized command, must be one of: \n'
-                '\tcreate-device, create-registry, delete-device, '
-                'delete-registry, get, list, patch-es256, patch-rs256')
 
 
 def main():
